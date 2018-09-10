@@ -265,16 +265,36 @@ public class AnalyzedTableElements {
         SymbolPrinter printer = new SymbolPrinter(functions);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
-            if (columnDefinition.generatedExpression() != null) {
-                processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
-            }
+            processGeneratedExpressions(
+                columnDefinition,
+                expressionAnalyzer,
+                printer,
+                expressionAnalysisContext
+            );
         }
     }
 
-    private void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
-                                            SymbolPrinter symbolPrinter,
-                                            AnalyzedColumnDefinition columnDefinition,
-                                            ExpressionAnalysisContext expressionAnalysisContext) {
+    private static void processGeneratedExpressions(AnalyzedColumnDefinition columnDefinition,
+                                                    ExpressionAnalyzer expressionAnalyzer,
+                                                    SymbolPrinter printer,
+                                                    ExpressionAnalysisContext expressionAnalysisContext) {
+        if (columnDefinition.generatedExpression() != null) {
+            processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
+        }
+        for (AnalyzedColumnDefinition child : columnDefinition.children()) {
+            processGeneratedExpressions(
+                child,
+                expressionAnalyzer,
+                printer,
+                expressionAnalysisContext
+            );
+        }
+    }
+
+    private static void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
+                                                   SymbolPrinter symbolPrinter,
+                                                   AnalyzedColumnDefinition columnDefinition,
+                                                   ExpressionAnalysisContext expressionAnalysisContext) {
         // validate expression
         Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), expressionAnalysisContext);
 
