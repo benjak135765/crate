@@ -24,6 +24,7 @@ package io.crate.expression;
 
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
@@ -39,11 +40,11 @@ public final class ValueExtractors {
         return o instanceof String ? new BytesRef((String) o) : o;
     }
 
-    public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column) {
+    public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column, DataType<?> type) {
         if (column.isTopLevel()) {
-            return new GetFromMap(column.name());
+            return new GetFromMap(column.name(), type);
         } else {
-            return new GetFromMapNested(column);
+            return new GetFromMapNested(column, type);
         }
     }
 
@@ -53,29 +54,33 @@ public final class ValueExtractors {
 
     private static class GetFromMap implements Function<Map<String, Object>, Object> {
         private final String name;
+        private final DataType<?> type;
 
-        GetFromMap(String name) {
+        GetFromMap(String name, DataType<?> type) {
             this.name = name;
+            this.type = type;
         }
 
         @Override
         public Object apply(Map<String, Object> map) {
-            return stringAsBytesRef(map.get(name));
+            return type.value(map.get(name));
         }
     }
 
     private static class GetFromMapNested implements Function<Map<String, Object>, Object> {
         private final ColumnIdent column;
+        private final DataType<?> type;
 
-        GetFromMapNested(ColumnIdent column) {
+        GetFromMapNested(ColumnIdent column, DataType<?> type) {
             this.column = column;
+            this.type = type;
         }
 
         @Override
         public Object apply(Map<String, Object> map) {
             Object m = map.get(column.name());
             if (m instanceof Map) {
-                return stringAsBytesRef(getByPath((Map) m, column.path()));
+                return type.value(getByPath((Map) m, column.path()));
             }
             return null;
         }
