@@ -128,6 +128,6 @@ public class SqlExpressions {
     }
 
     public void setDefaultSchema(String schema) {
-        this.transactionContext.sessionContext().setDefaultSchema(schema);
+        this.transactionContext.sessionContext().setSearchPath(schema);
     }
 }

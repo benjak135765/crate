@@ -22,12 +22,12 @@
 
 package io.crate.action.sql;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.metadata.Schemas;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -42,7 +42,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private final StatementAuthorizedValidator statementAuthorizedValidator;
     private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
-    private String defaultSchema;
+    private SearchPath searchPath;
     private boolean semiJoinsRewriteEnabled = false;
     private boolean hashJoinEnabled = true;
 
@@ -72,7 +72,11 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         this.user = requireNonNull(user, "User is required");
         this.statementAuthorizedValidator = statementAuthorizedValidator;
         this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
-        this.defaultSchema = defaultSchema;
+        if (defaultSchema == null) {
+            this.searchPath = new SearchPath();
+        } else {
+            this.searchPath = new SearchPath(ImmutableList.of(defaultSchema));
+        }
         if (defaultSchema == null) {
             resetSchema();
         }
@@ -82,7 +86,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Reverts the schema to the built-in default.
      */
     public void resetSchema() {
-        defaultSchema = Schemas.DOC_SCHEMA_NAME;
+        searchPath = new SearchPath();
     }
 
     public Set<Option> options() {
@@ -90,11 +94,16 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     }
 
     public String defaultSchema() {
-        return defaultSchema;
+        return searchPath.defaultSchema();
     }
 
-    public void setDefaultSchema(String schema) {
-        defaultSchema = requireNonNull(schema, "Default schema must never be set to null");
+    public String currentSchema() {
+        return searchPath.currentSchema();
+    }
+
+    public void setSearchPath(String... schemas) {
+        requireNonNull(schemas, "Search path must never be set to null");
+        searchPath = new SearchPath(ImmutableList.copyOf(schemas));
     }
 
     public void setSemiJoinsRewriteEnabled(boolean flag) {
