@@ -60,4 +60,8 @@ public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
             }
         }
     }
+
+    public boolean hasChecks() {
+        return !inputs.isEmpty();
+    }
 }

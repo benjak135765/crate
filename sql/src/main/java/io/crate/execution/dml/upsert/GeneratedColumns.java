@@ -101,4 +101,12 @@ public final class GeneratedColumns<T> {
     public Iterable<? extends Map.Entry<Reference, Input<?>>> toInject() {
         return toInject.entrySet();
     }
+
+    public boolean hasColumnsToInject() {
+        return !toInject.isEmpty();
+    }
+
+    public boolean hasColumnsToValidate() {
+        return !toValidate.isEmpty();
+    }
 }

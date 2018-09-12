@@ -31,7 +31,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.get.GetResult;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -42,8 +41,6 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.forFun
  * {@link GetResult}s
  */
 public class GetResultRefResolver implements ReferenceResolver<CollectExpression<GetResult, ?>> {
-
-    public static final GetResultRefResolver INSTANCE = new GetResultRefResolver(Collections.emptyList());
 
     private final List<ColumnIdent> partitionedByColumns;
 

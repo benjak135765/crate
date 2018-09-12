@@ -40,50 +40,24 @@ public final class ValueExtractors {
         return o instanceof String ? new BytesRef((String) o) : o;
     }
 
-    public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column, DataType<?> type) {
+    public static Object fromMap(Map<String, Object> map, ColumnIdent column) {
+        Object o = map.get(column.name());
         if (column.isTopLevel()) {
-            return new GetFromMap(column.name(), type);
-        } else {
-            return new GetFromMapNested(column, type);
+            return o;
         }
+        if (o instanceof Map) {
+            //noinspection unchecked
+            return getByPath((Map) o, column.path());
+        }
+        return o;
+    }
+
+    public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column, DataType<?> type) {
+        return map -> type.value(fromMap(map, column));
     }
 
     public static Function<Row, Object> fromRow(int idx, List<String> subscript) {
         return new FromRowWithSubscript(idx, subscript);
-    }
-
-    private static class GetFromMap implements Function<Map<String, Object>, Object> {
-        private final String name;
-        private final DataType<?> type;
-
-        GetFromMap(String name, DataType<?> type) {
-            this.name = name;
-            this.type = type;
-        }
-
-        @Override
-        public Object apply(Map<String, Object> map) {
-            return type.value(map.get(name));
-        }
-    }
-
-    private static class GetFromMapNested implements Function<Map<String, Object>, Object> {
-        private final ColumnIdent column;
-        private final DataType<?> type;
-
-        GetFromMapNested(ColumnIdent column, DataType<?> type) {
-            this.column = column;
-            this.type = type;
-        }
-
-        @Override
-        public Object apply(Map<String, Object> map) {
-            Object m = map.get(column.name());
-            if (m instanceof Map) {
-                return type.value(getByPath((Map) m, column.path()));
-            }
-            return null;
-        }
     }
 
     private static class FromRowWithSubscript implements Function<Row, Object> {
