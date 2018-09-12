@@ -64,7 +64,6 @@ public final class StringObjectMaps {
         if (path.isEmpty()) {
             source.put(key, value);
         } else {
-            // TODO: Make this non-recursive?
             if (source.containsKey(key)) {
                 Map<String, Object> contents = (Map<String, Object>) source.get(key);
                 if (contents == null) {
@@ -83,9 +82,9 @@ public final class StringObjectMaps {
     private static Map<String, Object> nestedMaps(List<String> path, Object value) {
         final HashMap<String, Object> root = new HashMap<>(1);
         HashMap<String, Object> m = root;
-        for (int i = 0; i < path.size(); i++) {
+        for (int i = 0, size = path.size(); i < size; i++) {
             String key = path.get(i);
-            if (i + 1 == path.size()) {
+            if (i + 1 == size) {
                 m.put(key, value);
             } else {
                 HashMap<String, Object> nextChild = new HashMap<>(1);

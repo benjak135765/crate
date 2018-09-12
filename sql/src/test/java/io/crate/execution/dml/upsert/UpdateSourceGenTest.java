@@ -24,6 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.Constants;
 import io.crate.analyze.AnalyzedUpdateStatement;
+import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Assignments;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -64,10 +65,45 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .bytes();
         BytesReference updatedSource = updateSourceGen.generateSource(
-            new GetResult(table.concreteIndices()[0], Constants.DEFAULT_MAPPING_TYPE, "1", 1, true, source, Collections.emptyMap()),
+            new Doc(new GetResult(table.concreteIndices()[0], Constants.DEFAULT_MAPPING_TYPE, "1", 1, true, source, Collections.emptyMap())),
             assignments.sources(),
             new Object[0]
         );
         assertThat(updatedSource.utf8ToString(), is("{\"x\":2}"));
+    }
+
+    @Test
+    public void testSourceGenerationWithAssignmentUsingDocumentPrimaryKey() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (y int)")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set y = _id::integer * 2");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(
+            e.functions(),
+            table,
+            assignments.targetNames()
+        );
+
+        BytesReference source = XContentFactory.jsonBuilder()
+            .startObject()
+            .field("y", 100)
+            .endObject()
+            .bytes();
+        BytesReference updatedSource = updateSourceGen.generateSource(
+            new Doc(new GetResult(
+                table.concreteIndices()[0],
+                Constants.DEFAULT_MAPPING_TYPE,
+                "4",
+                1,
+                true,
+                source,
+                Collections.emptyMap())
+            ),
+            assignments.sources(),
+            new Object[0]
+        );
+        assertThat(updatedSource.utf8ToString(), is("{\"y\":8}"));
     }
 }

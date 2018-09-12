@@ -27,8 +27,8 @@ import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.InputFactory;
-import io.crate.expression.ValueExtractors;
-import io.crate.expression.reference.GetResultRefResolver;
+import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -39,7 +39,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.get.GetResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,12 +78,12 @@ import java.util.Map;
 final class UpdateSourceGen {
 
     private final Evaluator eval;
-    private final GeneratedColumns<GetResult> generatedColumns;
+    private final GeneratedColumns<Doc> generatedColumns;
     private final ArrayList<Reference> updateColumns;
-    private final CheckConstraints<GetResult, CollectExpression<GetResult, ?>> checks;
+    private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
 
     UpdateSourceGen(Functions functions, DocTableInfo table, String[] updateColumns) {
-        GetResultRefResolver refResolver = new GetResultRefResolver(table.partitionedBy());
+        DocRefResolver refResolver = new DocRefResolver(table.partitionedBy());
         this.eval = new Evaluator(functions, refResolver);
         InputFactory inputFactory = new InputFactory(functions);
         this.checks = new CheckConstraints<>(inputFactory, refResolver, table);
@@ -99,7 +98,7 @@ final class UpdateSourceGen {
         } else {
             generatedColumns = new GeneratedColumns<>(
                 inputFactory,
-                InsertSourceGen.Validation.GENERATED_VALUE_MATCH,
+                GeneratedColumns.Validation.VALUE_MATCH,
                 refResolver,
                 this.updateColumns,
                 table.generatedColumns()
@@ -107,7 +106,7 @@ final class UpdateSourceGen {
         }
     }
 
-    BytesReference generateSource(GetResult result, Symbol[] updateAssignments, Object[] insertValues) throws IOException {
+    BytesReference generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) throws IOException {
         /* We require a new HashMap because all evaluations of the updateAssignments need to be based on the
          * values *before* the update. For example:
          *
@@ -118,53 +117,21 @@ final class UpdateSourceGen {
          */
         Values values = new Values(result, insertValues);
         HashMap<String, Object> updatedSource = new HashMap<>(result.getSource());
+        Doc updatedDoc = result.withUpdatedSource(updatedSource);
         for (int i = 0; i < updateColumns.size(); i++) {
             Reference ref = updateColumns.get(i);
             Object value = eval.process(updateAssignments[i], values).value();
             ColumnIdent column = ref.column();
             StringObjectMaps.mergeInto(updatedSource, column.name(), column.path(), value);
+            generatedColumns.setNextRow(updatedDoc);
+            generatedColumns.validateValue(ref, value);
         }
-        injectGeneratedColumns(result, updatedSource);
-        BytesReference updatedSourceRef = XContentFactory.jsonBuilder().map(updatedSource).bytes();
-        if (checks.hasChecks() || generatedColumns.hasColumnsToValidate()) {
-            GetResult updatedGetResult = new GetResult(
-                result.getIndex(),
-                result.getType(),
-                result.getId(),
-                result.getVersion(),
-                result.isExists(),
-                updatedSourceRef,
-                result.getFields()
-            );
-            if (generatedColumns.hasColumnsToValidate()) {
-                generatedColumns.setNextRow(updatedGetResult);
-                for (int i = 0; i < updateColumns.size(); i++) {
-                    Reference ref = updateColumns.get(i);
-                    ColumnIdent column = ref.column();
-                    Object val = ref.valueType().value(ValueExtractors.fromMap(updatedSource, column));
-                    generatedColumns.validateValue(ref, val);
-                }
-            }
-            checks.validate(updatedGetResult);
-        }
-        return updatedSourceRef;
+        injectGeneratedColumns(updatedSource);
+        checks.validate(updatedDoc);
+        return XContentFactory.jsonBuilder().map(updatedSource).bytes();
     }
 
-    private void injectGeneratedColumns(GetResult result, HashMap<String, Object> updatedSource) throws IOException {
-        if (!generatedColumns.hasColumnsToInject()) {
-            return;
-        }
-        BytesReference updatedSourceRef = XContentFactory.jsonBuilder().map(updatedSource).bytes();
-        GetResult updatedGetResult = new GetResult(
-            result.getIndex(),
-            result.getType(),
-            result.getId(),
-            result.getVersion(),
-            result.isExists(),
-            updatedSourceRef,
-            result.getFields()
-        );
-        generatedColumns.setNextRow(updatedGetResult);
+    private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
             ColumnIdent column = entry.getKey().column();
             Object value = entry.getValue().value();
@@ -174,10 +141,10 @@ final class UpdateSourceGen {
 
     private static class Values {
 
-        private final GetResult getResult;
+        private final Doc getResult;
         private final Object[] insertValues;
 
-        Values(GetResult getResult, Object[] insertValues) {
+        Values(Doc getResult, Object[] insertValues) {
             this.getResult = getResult;
             this.insertValues = insertValues;
         }
@@ -185,10 +152,10 @@ final class UpdateSourceGen {
 
     private static class Evaluator extends BaseImplementationSymbolVisitor<Values> {
 
-        private final ReferenceResolver<CollectExpression<GetResult, ?>> refResolver;
+        private final ReferenceResolver<CollectExpression<Doc, ?>> refResolver;
 
         private Evaluator(Functions functions,
-                          ReferenceResolver<CollectExpression<GetResult, ?>> refResolver) {
+                          ReferenceResolver<CollectExpression<Doc, ?>> refResolver) {
             super(functions);
             this.refResolver = refResolver;
         }
@@ -200,7 +167,7 @@ final class UpdateSourceGen {
 
         @Override
         public Input<?> visitReference(Reference symbol, Values values) {
-            CollectExpression<GetResult, ?> expr = refResolver.getImplementation(symbol);
+            CollectExpression<Doc, ?> expr = refResolver.getImplementation(symbol);
             expr.setNextRow(values.getResult);
             return expr;
         }

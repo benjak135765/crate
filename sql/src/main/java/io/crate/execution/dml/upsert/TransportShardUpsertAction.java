@@ -28,6 +28,7 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
+import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -114,9 +115,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(request.index()), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
-        InsertSourceGen.Validation valueValidation = request.validateConstraints()
-            ? InsertSourceGen.Validation.GENERATED_VALUE_MATCH
-            : InsertSourceGen.Validation.NONE;
+        GeneratedColumns.Validation valueValidation = request.validateConstraints()
+            ? GeneratedColumns.Validation.VALUE_MATCH
+            : GeneratedColumns.Validation.NONE;
 
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
@@ -276,14 +277,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 version = Versions.MATCH_ANY;
             }
         } else {
-            GetResult getResult = getDocument(indexShard, request, item);
+            Doc currentDoc = new Doc(getDocument(indexShard, request, item));
             BytesReference updatedSource = updateSourceGen.generateSource(
-                getResult,
+                currentDoc,
                 item.updateAssignments(),
                 item.insertValues()
             );
             item.source(updatedSource);
-            version = getResult.getVersion();
+            version = currentDoc.getVersion();
         }
 
         SourceToParse sourceToParse = SourceToParse.source(

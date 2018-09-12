@@ -54,7 +54,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
     InsertSourceFromCells(Functions functions,
                           DocTableInfo table,
-                          Validation validation,
+                          GeneratedColumns.Validation validation,
                           List<Reference> targets) {
         assert targets.stream().allMatch(ref -> ref.column().isTopLevel()) : "Can only insert into top-level columns";
 

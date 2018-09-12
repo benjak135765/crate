@@ -33,11 +33,6 @@ import java.util.List;
 
 public interface InsertSourceGen {
 
-    enum Validation {
-        NONE,
-        GENERATED_VALUE_MATCH
-    }
-
     void checkConstraints(Object[] values);
 
     BytesReference generateSource(Object[] values) throws IOException;
@@ -45,7 +40,7 @@ public interface InsertSourceGen {
 
     static InsertSourceGen of(Functions functions,
                               DocTableInfo table,
-                              Validation validation,
+                              GeneratedColumns.Validation validation,
                               List<Reference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
             if (table.generatedColumns().isEmpty()) {

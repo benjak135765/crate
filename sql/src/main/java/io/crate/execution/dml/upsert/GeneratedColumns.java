@@ -37,6 +37,11 @@ import java.util.Map;
 
 public final class GeneratedColumns<T> {
 
+    public enum Validation {
+        NONE,
+        VALUE_MATCH
+    }
+
     private static final GeneratedColumns EMPTY = new GeneratedColumns();
 
     public static <T> GeneratedColumns<T> empty() {
@@ -55,22 +60,20 @@ public final class GeneratedColumns<T> {
     }
 
     public GeneratedColumns(InputFactory inputFactory,
-                            InsertSourceGen.Validation validation,
+                            Validation validation,
                             ReferenceResolver<CollectExpression<T, ?>> refResolver,
                             Collection<Reference> presentColumns,
                             List<GeneratedReference> allGeneratedColumns) {
-        toValidate = validation == InsertSourceGen.Validation.NONE ? Collections.emptyMap() : new HashMap<>();
+        toValidate = validation == Validation.NONE ? Collections.emptyMap() : new HashMap<>();
         InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(refResolver);
         toInject = new HashMap<>();
         for (GeneratedReference generatedCol : allGeneratedColumns) {
             if (presentColumns.contains(generatedCol)) {
-                if (validation == InsertSourceGen.Validation.GENERATED_VALUE_MATCH) {
-                    Input<?> input = ctx.add(generatedCol.generatedExpression());
-                    toValidate.put(generatedCol, input);
+                if (validation == Validation.VALUE_MATCH) {
+                    toValidate.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
                 }
             } else {
-                Input<?> input = ctx.add(generatedCol.generatedExpression());
-                toInject.put(generatedCol, input);
+                toInject.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
             }
         }
         expressions = ctx.expressions();
@@ -102,11 +105,4 @@ public final class GeneratedColumns<T> {
         return toInject.entrySet();
     }
 
-    public boolean hasColumnsToInject() {
-        return !toInject.isEmpty();
-    }
-
-    public boolean hasColumnsToValidate() {
-        return !toValidate.isEmpty();
-    }
 }
