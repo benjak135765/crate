@@ -78,9 +78,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         } else {
             this.searchPath = new SearchPath(ImmutableList.of(defaultSchema));
         }
-        if (defaultSchema == null) {
-            resetSchema();
-        }
     }
 
     /**
