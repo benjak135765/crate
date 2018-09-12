@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.parser.SqlParser;
@@ -38,14 +39,16 @@ public final class CreateViewAnalyzer {
 
     private final RelationAnalyzer relationAnalyzer;
     private final SQLPrinter sqlPrinter;
+    private final Schemas schemas;
 
-    CreateViewAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer) {
+    CreateViewAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer, Schemas schemas) {
         this.sqlPrinter = new SQLPrinter(new SymbolPrinter(functions));
         this.relationAnalyzer = relationAnalyzer;
+        this.schemas = schemas;
     }
 
-    public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx, String defaultSchema) {
-        RelationName name = RelationName.of(createView.name(), defaultSchema);
+    public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx) {
+        RelationName name = RelationName.of(createView.name(), txnCtx.sessionContext().defaultSchema());
         name.ensureValidForRelationCreation();
         if (BlobSchemaInfo.NAME.equals(name.schema())) {
             throw new UnsupportedOperationException("Creating a view in the \"blob\" schema is not supported");

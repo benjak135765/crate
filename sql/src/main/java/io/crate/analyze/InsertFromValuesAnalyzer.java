@@ -117,7 +117,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             throw new IllegalArgumentException("VALUES clause must not be empty");
         }
 
-        RelationName relationName = RelationName.of(insert.table(), txnCtx.sessionContext().defaultSchema());
+        RelationName relationName = RelationName.resolveRelation(insert.table(), txnCtx.sessionContext().searchPath(), schemas);
         DocTableInfo targetTable = schemas.getTableInfo(relationName, Operation.INSERT);
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
@@ -167,7 +167,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()),
+            RelationName.resolveRelation(node.table(), analysis.sessionContext().searchPath(), schemas),
             Operation.INSERT
         );
 

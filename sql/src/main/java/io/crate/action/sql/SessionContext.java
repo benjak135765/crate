@@ -28,6 +28,7 @@ import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.SearchPath;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -91,6 +92,10 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public Set<Option> options() {
         return options;
+    }
+
+    public SearchPath searchPath() {
+        return searchPath;
     }
 
     public String defaultSchema() {

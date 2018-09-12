@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.RefreshStatement;
@@ -45,18 +46,18 @@ class RefreshTableAnalyzer {
             refreshStatement.tables(),
             schemas,
             analysis.parameterContext(),
-            analysis.sessionContext().defaultSchema()
+            analysis.sessionContext().searchPath()
         ));
     }
 
     private static Set<String> getIndexNames(List<Table> tables,
                                              Schemas schemas,
                                              ParameterContext parameterContext,
-                                             String defaultSchema) {
+                                             SearchPath searchPath) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
             DocTableInfo tableInfo = schemas.getTableInfo(
-                RelationName.of(nodeTable, defaultSchema), Operation.REFRESH);
+                RelationName.resolveRelation(nodeTable, searchPath, schemas), Operation.REFRESH);
             indexNames.addAll(TableAnalyzer.filteredIndices(
                     parameterContext,
                     nodeTable.partitionProperties(), tableInfo));

@@ -107,7 +107,7 @@ class InsertFromSubQueryAnalyzer {
     }
 
     public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, TransactionContext txnCtx) {
-        RelationName relationName = RelationName.of(insert.table(), txnCtx.sessionContext().defaultSchema());
+        RelationName relationName = RelationName.resolveRelation(insert.table(), txnCtx.sessionContext().searchPath(), schemas);
         DocTableInfo targetTable = schemas.getTableInfo(relationName, Operation.INSERT);
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
@@ -132,7 +132,7 @@ class InsertFromSubQueryAnalyzer {
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()),
+            RelationName.resolveRelation(node.table(), analysis.sessionContext().searchPath(), schemas),
             Operation.INSERT);
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);

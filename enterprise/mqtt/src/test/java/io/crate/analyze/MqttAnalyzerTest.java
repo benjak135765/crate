@@ -22,23 +22,32 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.QualifiedName;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.Optional;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MqttAnalyzerTest {
 
     @Test
     public void testDefaultSchemaHandling() {
-        Schemas schemas = Mockito.mock(Schemas.class);
+        Schemas schemas = mock(Schemas.class);
+        RelationName targetRelation = new RelationName("custom", "table");
+        when(schemas.getTableInfo(targetRelation)).thenReturn(mock(TableInfo.class));
+        when(schemas.getTableInfo(not(eq(targetRelation)))).thenThrow(new RelationUnknown(targetRelation));
         CreateIngestionRuleAnalyzer analyzer = new CreateIngestionRuleAnalyzer(schemas);
         final CreateIngestRule createIngestRule =
             new CreateIngestRule(
@@ -48,8 +57,8 @@ public class MqttAnalyzerTest {
                 Optional.empty());
         SessionContext sessionContext = SessionContext.systemSessionContext();
         sessionContext.setSearchPath("custom");
-        ParameterContext parameterContext = Mockito.mock(ParameterContext.class);
-        ParamTypeHints paramTypeHints = Mockito.mock(ParamTypeHints.class);
+        ParameterContext parameterContext = mock(ParameterContext.class);
+        ParamTypeHints paramTypeHints = mock(ParamTypeHints.class);
         Analysis analysis = new Analysis(new TransactionContext(sessionContext), parameterContext, paramTypeHints);
 
         CreateIngestionRuleAnalysedStatement analyzed = analyzer.analyze(createIngestRule, analysis);

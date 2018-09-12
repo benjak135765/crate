@@ -29,8 +29,8 @@ import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
@@ -76,7 +76,8 @@ class RestoreSnapshotAnalyzer {
             List<Table> tableList = node.tableList().get();
             Set<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> restoreTables = new HashSet<>(tableList.size());
             for (Table table : tableList) {
-                RelationName relationName = RelationName.of(table, analysis.sessionContext().defaultSchema());
+                RelationName relationName = RelationName.of(table.getName(), analysis.sessionContext().defaultSchema());
+
                 boolean tableExists = schemas.tableExists(relationName);
 
                 if (tableExists) {

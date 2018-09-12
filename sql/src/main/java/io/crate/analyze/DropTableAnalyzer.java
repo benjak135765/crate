@@ -38,10 +38,10 @@ class DropTableAnalyzer {
     }
 
     public DropTableAnalyzedStatement analyze(DropTable node, SessionContext sessionContext) {
-        RelationName relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
         DocTableInfo tableInfo = null;
         boolean isNoop = false;
         try {
+            RelationName relationName = RelationName.resolveRelation(node.table(), sessionContext.searchPath(), schemas);
             tableInfo = schemas.getTableInfo(relationName, Operation.DROP);
         } catch (ResourceUnknownException e) {
             if (node.dropIfExists()) {

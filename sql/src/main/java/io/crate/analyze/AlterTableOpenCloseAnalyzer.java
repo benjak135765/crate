@@ -48,7 +48,7 @@ class AlterTableOpenCloseAnalyzer {
         if (node.blob()) {
             relationName = tableToIdent(table);
         } else {
-            relationName = RelationName.of(table, sessionContext.defaultSchema());
+            relationName = RelationName.resolveRelation(table, sessionContext.searchPath(), schemas);
         }
 
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_OPEN_CLOSE);

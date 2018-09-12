@@ -37,7 +37,8 @@ public class CreateIngestionRuleAnalyzer {
     }
 
     CreateIngestionRuleAnalysedStatement analyze(CreateIngestRule node, Analysis context) {
-        RelationName relationName = RelationName.of(node.targetTable(), context.sessionContext().defaultSchema());
+        RelationName relationName = RelationName
+            .resolveRelation(node.targetTable(), context.sessionContext().searchPath(), schemas);
         ensureTableExists(relationName);
 
         return new CreateIngestionRuleAnalysedStatement(node.ruleName(),

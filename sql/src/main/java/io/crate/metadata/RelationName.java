@@ -27,7 +27,10 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.view.ViewMetaData;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
@@ -45,8 +48,42 @@ public final class RelationName implements Writeable {
     private final String schema;
     private final String name;
 
-    public static RelationName of(Table tableNode, String defaultSchema) {
-        return of(tableNode.getName(), defaultSchema);
+    public static RelationName resolveRelation(Table tableNode, SearchPath searchPath, Schemas schemas) {
+        return resolveRelation(tableNode.getName(), searchPath, schemas);
+    }
+
+    public static RelationName resolveRelation(QualifiedName name, SearchPath searchPath, Schemas schemas) {
+        List<String> parts = name.getParts();
+        Preconditions.checkArgument(parts.size() < 3,
+            "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
+        if (parts.size() == 2) {
+            return new RelationName(parts.get(0), parts.get(1));
+        }
+
+        String relationSchema = null;
+        for (String schema : searchPath.searchPath()) {
+            try {
+                schemas.getTableInfo(new RelationName(schema, parts.get(0)));
+                relationSchema = schema;
+                break;
+            } catch (SchemaUnknownException | RelationUnknown e) {
+                try {
+                    ViewMetaData view = schemas.resolveView(new RelationName(schema, parts.get(0)));
+                    if (view != null) {
+                        relationSchema = schema;
+                        break;
+                    }
+                } catch (SchemaUnknownException e1) {
+                    continue;
+                }
+            }
+        }
+
+        if (relationSchema == null) {
+            throw new RelationUnknown(parts.get(0), null);
+        }
+
+        return new RelationName(relationSchema, parts.get(0));
     }
 
     public static RelationName of(QualifiedName name, String defaultSchema) {

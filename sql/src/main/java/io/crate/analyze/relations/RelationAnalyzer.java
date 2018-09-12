@@ -684,7 +684,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
-        RelationName relationName = RelationName.of(node, context.sessionContext().defaultSchema());
+        RelationName relationName = RelationName.resolveRelation(node, context.sessionContext().searchPath(), schemas);
         TableInfo tableInfo = schemas.getTableInfoOrNull(relationName, context.currentOperation());
         final AnalyzedRelation relation;
         if (tableInfo == null) {

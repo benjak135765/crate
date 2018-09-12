@@ -98,7 +98,8 @@ class CreateSnapshotAnalyzer {
                 DocTableInfo docTableInfo;
                 try {
                     docTableInfo = schemas.getTableInfo(
-                        RelationName.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT);
+                        RelationName.resolveRelation(table, analysis.sessionContext().searchPath(), schemas),
+                        Operation.CREATE_SNAPSHOT);
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());

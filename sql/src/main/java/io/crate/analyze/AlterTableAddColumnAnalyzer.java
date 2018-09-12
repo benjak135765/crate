@@ -55,7 +55,8 @@ class AlterTableAddColumnAnalyzer {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        RelationName relationName = RelationName.of(node.table(), analysis.sessionContext().defaultSchema());
+        RelationName relationName = RelationName
+            .resolveRelation(node.table(), analysis.sessionContext().searchPath(), schemas);
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER);
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
             node.tableElement(),

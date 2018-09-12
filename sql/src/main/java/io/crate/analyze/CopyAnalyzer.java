@@ -106,7 +106,7 @@ class CopyAnalyzer {
 
     CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.INSERT);
+            RelationName.resolveRelation(node.table(), analysis.sessionContext().searchPath(), schemas), Operation.INSERT);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         String partitionIdent = null;
@@ -182,7 +182,7 @@ class CopyAnalyzer {
         }
 
         TableInfo tableInfo = schemas.getTableInfo(
-            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.COPY_TO);
+            RelationName.resolveRelation(node.table(), analysis.sessionContext().searchPath(), schemas), Operation.COPY_TO);
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
